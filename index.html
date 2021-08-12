@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+    <style>
+
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container my-3">
+            <div class="input-group mb-3">
+                <span class="input-group-text">代辦事項</span>
+                <input type="text" class="form-control" placeholder="準備要做的任務" v-model="newTodo">
+                <button type="button" class="btn btn-primary" @click="createTodo">新增</button>
+            </div>
+            <div class="card text-center">
+                <ul class="list-group list-group-flush text-start">
+                    <li v-for="todo in filteredTodoList" class="list-group-item" :key="todo.id">
+                        <div class="d-flex align-items-center">
+                            <div v-if="tempTodo.id === todo.id">
+                                <input type="text" class="form-control" v-model="tempTodo.text">
+                            </div>
+                            <div v-else class="form-check">
+                                <input :id="'todo-' + todo.id" type="checkbox" class="form-check-input" :checked="todo.completed" @change.stop="completeTodo(todo)">
+                                <label :for="'todo-' + todo.id" :class="todo.completed ? 'text-decoration-line-through' : ''" v-text="todo.text" ></label>
+                           </div>
+                            <div v-if="tempTodo.id === todo.id" class="btn-group ms-auto">
+                                <button type="button" class="btn btn-outline-success" @click.stop="updateTodo(todo.id)">儲存</button>
+                                <button type="button" class="btn btn-outline-danger" @click.stop="cancelEditTodo">取消</button>
+                            </div>
+                            <div v-else class="btn-group ms-auto">
+                                <button type="button" class="btn btn-outline-success" @click.stop="editTodo(todo)">編輯</button>
+                                <button type="button" class="btn btn-outline-danger" @click.stcop="deleteTodo(todo.id)">刪除</button>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span>有 <span v-text="filteredTodoList.length"></span> 筆任務</span>
+                    <div class="btn-group" role="group" aria-label="Basic outlined example">
+                        <button type="button" @click.prevent="filterState = 'all'" class="btn btn-outline-primary" :class="{active: filterState === 'all'}">全部</button>
+                        <button type="button" @click.prevent="filterState = 'uncompleted'" class="btn btn-outline-primary" :class="{active: filterState === 'uncompleted'}">未完成</button>
+                        <button type="button" @click.prevent="filterState = 'completed'" class="btn btn-outline-primary" :class="{active: filterState === 'completed'}">已完成</button>
+                    </div>
+                    <button type="button" @click.prevent="deleteAllTodos" class="btn btn-danger">刪除全部</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script type="module">
+        import { createApp } from 'https://cdnjs.cloudflare.com/ajax/libs/vue/3.1.5/vue.esm-browser.prod.min.js';
+
+        const app = createApp({
+            data() {
+                return {
+                    newTodo: '',
+                    todoList: [],
+                    tempTodo: {},
+                    filterState: 'all'
+                }
+            },
+            computed: {
+                filteredTodoList() {
+                    switch(this.filterState) {
+                        case 'completed':
+                            return this.todoList.filter(todo => todo.completed);
+                        case 'uncompleted':
+                            return this.todoList.filter(todo => !todo.completed);
+                        default:
+                            return this.todoList;
+                    }
+                }
+            },
+            methods: {
+                createTodo() {
+                    this.todoList.push({
+                        id: Date.now(),
+                        text: this.newTodo,
+                        completed: false
+                    });
+                    this.newTodo = '';
+                    this.store();
+                },
+                deleteTodo(targetId) {
+                    const index = this.todoList.findIndex(todo => todo.id === targetId);
+                    this.todoList.splice(index, 1);
+                    this.store();
+                },
+                deleteAllTodos() {
+                    if(confirm('確定要刪除全部的代辦事項？')) {
+                        this.todoList = [];
+                    }
+                    this.store();
+                },
+                editTodo(targetTodo) {
+                    this.tempTodo = { ...targetTodo };
+                },
+                cancelEditTodo() {
+                    this.tempTodo = {};
+                },
+                updateTodo(targetId) {
+                    const index = this.todoList.findIndex(todo => todo.id === targetId);
+                    if(index !== -1) {
+                        this.todoList[index].text = this.tempTodo.text;
+                    }
+                    this.tempTodo = {};
+                    this.store();
+                },
+                completeTodo(targetTodo) {
+                    targetTodo.completed = !targetTodo.completed;
+                    this.store();
+                },
+                store() {
+                    localStorage.setItem('todoList', JSON.stringify(this.todoList));
+                }
+            },
+            mounted() {
+                const restoreData = localStorage.getItem('todoList');
+                this.todoList = restoreData === null ? [] : JSON.parse(restoreData);
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
